@@ -1,0 +1,166 @@
+---
+title: "Data Analysis"
+author: "group b5"
+date: '2022-05-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+setwd("~/Desktop/final-project-groupb5/data")
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(fmsb)
+
+
+happinessreport <- read.csv("happinessreport2022.csv")
+happinessreport_2022 <- happinessreport
+humancaptialindex <- read.csv("humancaptialindex.csv")
+humancaptialindex_2020 <- humancaptialindex
+
+top10_happiness <- happinessreport_2022
+top10_happiness <- select(top10_happiness, RANK, Country, Happiness.score, Explained.by..GDP.per.capita)
+top10_happiness <- slice_max(top10_happiness, Happiness.score, n = 10)
+top10_happiness = rename(top10_happiness, GDP_per_captia = Explained.by..GDP.per.capita )
+
+gdphappychart <- ggplot(top10_happiness) + 
+  geom_col(
+    mapping = aes(x = Country, y = GDP_per_captia, fill = Happiness.score)) +
+  scale_fill_gradient(low = "yellow", high = "red", na.value = NA) +
+  coord_flip()
+
+
+#data loading area 
+happinessreport <- read.csv("happinessreport2022.csv")
+
+health_happiness <- arrange(happinessreport, -Explained.by..Healthy.life.expectancy)
+health_happiness <- select(health_happiness, Country, Happiness.score, Explained.by..Healthy.life.expectancy)
+health_happiness <- health_happiness[0:20, ] 
+
+happylifechart<- ggplot(health_happiness, aes(x = Explained.by..Healthy.life.expectancy, y = Happiness.score)) +
+  geom_point() + 
+  labs(y= "Happiness Score", x = "Life Expectancy") +
+  geom_label(label = health_happiness$Country) +
+  ggtitle("Happiness Score vs. Life Expectancy")
+
+
+#data loading area 
+score_df <- read.csv("happinessreport2022.csv")
+
+new_score <- rename(score_df, GDP = Explained.by..GDP.per.capita)
+new_score <- rename(new_score, Social_Support = Explained.by..Social.support)
+new_score <- rename(new_score, Life_Expectancy = Explained.by..Healthy.life.expectancy)
+new_score <- rename(new_score, Freedom = Explained.by..Freedom.to.make.life.choices)
+new_score <- rename(new_score, Generosity = Explained.by..Generosity)
+new_score <- rename(new_score, Corruption = Explained.by..Perceptions.of.corruption)
+
+rd_df <- select(new_score, -c(RANK, Country, Happiness.score, Whisker.low, Whisker.high, Dystopia..1.83....residual))
+rd_df <- rd_df[!is.na(rd_df$GDP), ]
+
+min_df <- summarise_all(rd_df, min)
+max_df <- summarise_all(rd_df, max)
+
+data <- new_score[c(1,145), ]
+data <- select(data, GDP, Social_Support, Life_Expectancy, Freedom, Generosity, Corruption)
+
+df <- rbind(max_df, min_df, data)
+
+colors_border=c( rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9))
+colors_in =c( rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4))
+
+
+
+```
+
+
+# The Why
+
+We chose to use these two data sets as a way to explore two main questions, how can quantifiable data be used to explore an abstract topic - Happiness? and how does money, or access to money affect quality of life, and what similar objectives that countries who have higher access to money have in common? 
+
+While happiness may be a term or feeling that covers a lot of ground, we found that there are factors that influence how communities and populations view happiness, including access to money, what the communities life expectancy looks like - and thus what their communities look like. 
+
+Money may not create happiness, but does it provide an environment for individuals and communities to pursue activities and lifestyles that bring happiness?
+ 
+
+# The What 
+
+We used two data sets (The Human Capital Index, and the World Happiness Report) in order to have a wide range of information in order to evaluate the broad themes posed above. When looking at the data as a whole - these are the questions, and their subsequent answers that stood out to us. 
+
+* Do the top 10 GDP countries, and the top ten happiness level countries correlate?
+* What are the top 10 countries for human capital potential, and what do they have in common?
+* From which income group does a country has the highest adult survival rate?
+* What is the average value of high income, upper middle income, lower middle, low income group's survival rate?
+* What are the 20 countries with the highest and lowest life expectancy? 
+* What is the happiness score of these countries? Is there correlation between life expectancy and happiness score?
+
+We found that having access to higher levels of money/wealth gave countries higher life expectancy.  These higher levels of wealth also came out as the highest ranked for its population to gain human capital. There was also a correlation of high wealth to high test scores (and years spent in school)
+We also found that countries who ranked the happiest did tend to have higher GDP levels, but this was more along a theme than a direct correlation. 
+There was not a correlation between life expectancy and happiness score however, with countries having great variation in these categories. 
+
+
+
+
+```{r,include=FALSE}
+table_hcl_hl <- data.frame(humancaptialindex_2020$X, 
+                           humancaptialindex_2020$Income.Group,
+                           humancaptialindex_2020$HUMAN.CAPITAL.INDEX.2020) 
+table_hcl_hl = rename(table_hcl_hl, country = humancaptialindex_2020.X, 
+                      avg_income_level = humancaptialindex_2020.Income.Group,
+                      potential_human_capital = humancaptialindex_2020.HUMAN.CAPITAL.INDEX.2020)
+table_hcl_hl <- na.omit(table_hcl_hl)
+
+table_hcl_hl <- table_hcl_hl %>%
+  group_by(avg_income_level)%>%
+  summarise(ability_for_captial = mean(potential_human_capital))
+
+```
+
+Something that stood out to us from evaluating both of the data sets - separately and together, was that while happiness may not be correlated to GDP, one thing that *was* correlated to GDP/ or access to money was the ability for a human to make money, live longer lives, and have greater access to education. Below is a breakdown of how a countries average income level correlates to the individuals living within the countries ability to gain capital (in these terms, wealth or access to money)
+
+```{r, echo=FALSE}
+
+knitr::kable(table_hcl_hl)
+
+```
+
+
+
+# Chart 1 ( GDP vs Happiness level)
+```{r, echo=FALSE}
+plot(gdphappychart)
+```
+
+This chart shows the top 10 countries in terms of GDP, and we chose the top 10 to visualize because of the social commentary around having more money may make individuals happier, or life easier because there is more access to resources - thus more time is able to be spent on activities that bring happiness. 
+   
+This visualization brings in interesting observations, because following that statement above, the happiness levels of the top 10 should be relatively similar - yet there is a lot of variation in happiness levels, and no direct correlation even if there is a general theme.
+ 
+ 
+# Chart 2 (Happiness Score vs Life Expectancy) 
+                                                                                                  
+```{r, echo=FALSE}
+plot(happylifechart)
+```                                                                                      
+
+
+This chart only shows the top 20 countries that have highest Life Expectancy. Then it compares their happiness to see if there is a correlation between happiness and one's life expectancy. We specifically chose the ones with the highest life expectancy to see if happiness has contributed to that. The y-axis has the Happiness score while the x-axis has the Life Expectancy. 
+    
+ The chart shows that there is no direct $correlation between Happiness and Life Expectancy because ,for instance, the highest life expectancy in Hong Kong S.A.R. of China but it also has the lowest happiness score. 
+     
+     
+      
+# Chart 3 (Effect of Different Variables on Happiness Score)      
+```{r, echo=FALSE}
+radarchart(df, pcol = colors_border, pfcol = colors_in)
+title(main = "Effect of Different Variables on Happiness Score")
+
+legend(x=0.5, y=1.28, legend = c("Finland (Score = 7.821)", "Lebanon (Score = 2.955)"), bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+```  
+
+This chart explores the differences between the country with the highest happiness score (Finland), and the country with the lowest happiness score (Lebanon). We chose to look at these two countries in order to evaluate the nitty-gritty of what creates a high happiness score. 
+
+There are a few similarities, such as the life expectancy and perceival of generosity within the community. However we can see distinct differences when it comes to views on freedom within the country and having access to social support. Based on these correlations we can see that GDP does not have a huge role on the happiness score but having access to social support and freedom could be a indicator of what makes a country's population feel happy or not. 
+                                                                                                                                                     
